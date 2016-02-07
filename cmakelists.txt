@@ -1,0 +1,25 @@
+cmake_minimum_required(VERSION 3.4)
+project(trueskill)
+
+find_program(PYTHON_EXECUTABLE python)
+set(PYTHON_EXECUTABLE ${PYTHON_EXECUTABLE} CACHE FILEPATH "Path to python executable")
+find_package(PythonLibs)
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+find_package(NumPy)
+
+add_library(trueskill STATIC gaussian.cpp trueskill.cpp truncated_gaussian.cpp)
+
+add_library(pytrueskill SHARED pytrueskill.cpp)
+target_link_libraries(
+	pytrueskill
+	${PYTHON_LIBRARY}
+	trueskill
+	)
+target_include_directories(
+	pytrueskill 
+	PUBLIC ${PYTHON_INCLUDE_DIR} ${PYTHON_NUMPY_INCLUDE_DIR}
+	)
+set_target_properties(
+	pytrueskill
+	PROPERTIES SUFFIX ".pyd"
+	)
