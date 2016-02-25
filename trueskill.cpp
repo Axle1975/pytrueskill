@@ -33,29 +33,6 @@ namespace trueskill
 		return norm_cdf( (r1[MU]-r2[MU]) / denominator );
 	}
 
-
-	double likelihood_outcome_1vs1(
-		const double *env,
-		const int score12,
-		const double *r1,
-		const double *r2)
-	{
-		double pdraw = env[PDRAW] * quality_1vs1(env,r1,r2);
-		if (score12 > 0)
-		{
-			return (1.0-pdraw) * win_probability_1vs1(env,r1,r2);
-		}
-		else if (score12 == 0)
-		{
-			return pdraw;
-		}
-		else
-		{
-			return (1.0-pdraw) * win_probability_1vs1(env,r2,r1);
-		}
-	}
-
-
 	double draw_margin(const double *env)
 	{
 		// Derived from TrueSkill technical report (MSR-TR-2006-80), page 6
@@ -66,6 +43,59 @@ namespace trueskill
 		// n1 and n2 are the number of players on each team
 
 		return norm_ppf(0.5*(env[PDRAW]+1.0)) * std::sqrt(2.0) * env[BETA];
+	}
+	
+	double pdraw(const double *env,
+		const double *r1,
+		const double *r2)
+	{
+		double eps = draw_margin(env);
+		double mu = r1[MU] - r2[MU];
+		double sigma = std::sqrt(r1[SIGMA]*r1[SIGMA] + r2[SIGMA]*r2[SIGMA] + 2.0*env[BETA]*env[BETA]);
+		return norm_cdf((eps-mu)/sigma) - norm_cdf((-eps-mu)/sigma);
+	}
+
+	double pwin(const double *env,
+		const double *r1,
+		const double *r2)
+	{
+		double eps = draw_margin(env);
+		double mu = r1[MU] - r2[MU];
+		double sigma = std::sqrt(r1[SIGMA]*r1[SIGMA] + r2[SIGMA]*r2[SIGMA] + 2.0*env[BETA]*env[BETA]);
+		return 1.0 - norm_cdf((eps-mu)/sigma);
+	}
+
+	double plose(const double *env,
+		const double *r1,
+		const double *r2)
+	{
+		double eps = draw_margin(env);
+		double mu = r1[MU] - r2[MU];
+		double sigma = std::sqrt(r1[SIGMA]*r1[SIGMA] + r2[SIGMA]*r2[SIGMA] + 2.0*env[BETA]*env[BETA]);
+		return norm_cdf((-eps-mu)/sigma);
+	}
+
+	double likelihood_outcome_1vs1(
+		const double *env,
+		const int score12,
+		const double *r1,
+		const double *r2)
+	{
+		//double pdraw = env[PDRAW] * quality_1vs1(env,r1,r2);
+		if (score12 > 0)
+		{
+			return pwin(env,r1,r2);
+			//return (1.0-pdraw) * win_probability_1vs1(env,r1,r2);
+		}
+		else if (score12 == 0)
+		{
+			return pdraw(env,r1,r2);
+			//return pdraw;
+		}
+		else
+		{
+			return plose(env,r1,r2);
+		}
 	}
 
 

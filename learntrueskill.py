@@ -43,6 +43,19 @@ def load_replays(fn):
     return replays
 
 
+def save_results(results, fn):
+    idxOk = np.isfinite(results[:,-1])
+    results = results[idxOk,:]
+        
+    isor = np.argsort(results[:,-1])
+    results = results[isor,:]
+
+    with open(fn,'w') as fp:
+        csvwriter = csv.writer(fp)
+        csvwriter.writerow(['mu','sigma','beta','tau','pdraw','L'])
+        csvwriter.writerows(results)
+
+
 if __name__ == "__main__":
     replays = load_replays('data/replaydumper/replays.csv')
     nplayers = 1 + max(np.max(replays.playerid1), np.max(replays.playerid2))
@@ -52,10 +65,10 @@ if __name__ == "__main__":
     scores12 = (replays.score1 - replays.score2).astype(np.int)
     ratings = np.empty((nplayers,2),dtype=np.float)
 
-    ub = np.array([1500., 600., 350., 30., 0.055])
-    lb = np.array([1500., 400., 150., 10., 0.035])
+    ub = np.array([1500., 500., 500., 50., 0.1])
+    lb = np.array([1500., 500., 50., 1., 0.01])
     N=100000
-    results = np.empty((N,6),dtype=np.double)
+    results = np.zeros((N,6),dtype=np.double) * np.nan
     for n in range(N):
         print n, '\r',
         env = np.random.uniform(0.,1.,5)
@@ -69,17 +82,11 @@ if __name__ == "__main__":
         results[n,0:-1] = env
         results[n,-1] = L
 
-    idxOk = np.isfinite(results[:,-1])
-    results = results[idxOk,:]
+        if n%100 == 99:
+            save_results(results, 'learntrueskill_solution_space.txt')
+
+    save_results(results, 'learntrueskill_solution_space.txt')
         
-    isor = np.argsort(results[:,-1])
-    results = results[isor,:]
-
-    with open('learntrueskill_solution_space.txt','w') as fp:
-        csvwriter = csv.writer(fp)
-        csvwriter.writerow(['mu','sigma','beta','tau','pdraw','L'])
-        csvwriter.writerows(results)
-
     env = results[-1,0:5]
     ratings[:,0] = env[0]
     ratings[:,1] = env[1]
